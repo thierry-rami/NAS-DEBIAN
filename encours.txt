@@ -1,0 +1,29 @@
+
+- cnx LaPlateforme
+
+sudo mkdir /srv/NAS
+sudo mkdir /srv/NAS_Public
+sudo addgroup sftpjail
+sudo addgroup public_share
+##########
+
+sudo nano /etc/sshsshd_config/ et  :
+commenter la ligne : Subsystem       sftp    /usr/lib/openssh/sftp-server
+et ajouter :
+Subsystem sftp internal-sftp
+Match Group sftpjail
+  ChrootDirectory %h
+  ForceCommand internal-sftp
+  AllowTcpForwarding no
+  X11Forwarding no
+  
+##############  
+- install FTP => suivre https://github.com/thierry-rami/FTP
+- installer samba
+sudo apt install davfs2  cadaver
+- nginx /webdav => https://www.tutos.atomit.fr/2021/10/webdav-on-nginx/
+sudo usermod -aG shadow www-data
+sudo mkdir /etc/nginx/ssl
+
+
+

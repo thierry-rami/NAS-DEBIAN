@@ -6,15 +6,18 @@ fi
 
 username=$1
 password=$2
-user_home="/home/$username"
+user_home="/srv/NAS/$username"
 
 if id "$username" &>/dev/null; then
     echo "L'utilisateur $username existe déjà."
 else
-    useradd -m -s /bin/bash $username
+    mkdir -p $user_home
+    useradd -d $user_home -s /usr/sbin/nologin $username
     usermod -aG public_share $username
     usermod -aG sftpjail $username
     echo -e "$password\n$password" | passwd $username
+    (echo "$password"; echo "$password") | sudo smbpasswd -a -s $username
+
 fi
 
 mkdir -p $user_home/{Documents,Downloads,Public,Templates}
@@ -25,7 +28,7 @@ chmod -R 755 $user_home/
 
 # Ajout dans /etc/fstab si l'entrée n'existe pas
 if ! grep -q "$user_home/Public" /etc/fstab; then
-    echo "$user_home/Public /srv/public none bind 0 0" >> /etc/fstab
+    echo "$user_home/Public /srv/NAS_Public none bind 0 0" >> /etc/fstab
 fi
 systemctl daemon-reload
 mount -a
