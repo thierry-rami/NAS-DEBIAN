@@ -1,0 +1,35 @@
+server {
+    listen 80;
+    server_name nas-debian.local;
+    # Rediriger HTTP vers HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name nas-debian.local;
+
+    ssl_certificate /etc/nginx/ssl/nginx-selfsigned.crt;
+    ssl_certificate_key /etc/nginx/ssl/nginx-selfsigned.key;
+    include snippets/ssl-params.conf;
+
+    location / {
+        # Authentification PAM
+        auth_pam "Login required";
+        auth_pam_service_name "nginx";
+        # Définition du répertoire racine
+        root /srv/NAS/$remote_user;
+        index index.html index.htm;
+        # Autoriser l'autoindex pour permettre le parcours des répertoires
+        autoindex on;
+        # Activer le support WebDAV
+        dav_methods PUT DELETE MKCOL COPY MOVE;
+        create_full_put_path on;  # Permet de créer des répertoires manquants lors d'un PUT
+        dav_ext_methods PROPFIND OPTIONS;
+        # Configurer les permissions d'accès WebDAV
+        dav_access user:rw group:rw all:r;
+    }
+
+    error_log /var/log/nginx/webdav_error.log debug;
+    access_log /var/log/nginx/webdav_access.log combined;
+}
