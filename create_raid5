@@ -1,0 +1,43 @@
+#!/bin/bash
+apt update
+apt install -y mdadm parted
+
+# changer les disques selon configurations
+DISKS="/dev/sdb /dev/sdc /dev/sdd"
+DEVICES=3
+RAID_DEVICE="/dev/md0"
+MOUNT_POINT="/srv"
+FILESYSTEM="ext4"
+# Raid 5 ou 6 : attention Raid6 mini 4 disques
+RAID_TYPE=5  
+
+# création partition GPT et partition primaire RAID
+create_partition() {
+    local disk=$1
+    parted --script $disk mklabel gpt
+    parted --script $disk mkpart primary 0% 100%
+    parted --script $disk set 1 raid on
+}
+
+# Création des partitions sur chaque disque
+for disk in $DISKS; do
+    create_partition $disk
+done
+
+# 
+sleep 5
+
+# Création du RAID5
+mdadm --create --verbose $RAID_DEVICE --level=$RAID_TYPE --raid-devices=$DEVICES ${DISKS}1
+
+# Création du système de fichiers
+mkfs.$FILESYSTEM $RAID_DEVICE
+
+# Création du point de montage et montage du RAID
+mkdir -p $MOUNT_POINT
+mount $RAID_DEVICE $MOUNT_POINT
+
+# Ajout du RAID au fstab pour un montage automatique
+UUID=$(blkid -s UUID -o value $RAID_DEVICE)
+echo "UUID=$UUID $MOUNT_POINT $FILESYSTEM defaults 0 0" >> /etc/fstab
+
